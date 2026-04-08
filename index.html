@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz Dinâmico: Engenharia de Software</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #eef2f5; color: #333; margin: 0; padding: 20px; }
+        .container { max-width: 700px; margin: 0 auto; background-color: #fff; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); text-align: center; }
+        
+        #tela-inicial h1 { color: #2c3e50; font-size: 32px; margin-bottom: 10px; }
+        #tela-inicial p { color: #7f8c8d; font-size: 18px; margin-bottom: 30px; }
+        .input-nome { width: 80%; padding: 15px; font-size: 18px; border: 2px solid #bdc3c7; border-radius: 8px; margin-bottom: 20px; text-align: center; }
+        .input-nome:focus { border-color: #3498db; outline: none; }
+        
+        .btn-comecar { background-color: #3498db; color: white; border: none; padding: 15px 40px; font-size: 20px; font-weight: bold; border-radius: 8px; cursor: pointer; transition: background 0.3s; width: 100%; max-width: 300px; margin-bottom: 10px;}
+        .btn-comecar:hover { background-color: #2980b9; }
+        
+        .btn-ranking { background-color: #f39c12; color: white; border: none; padding: 15px 40px; font-size: 18px; font-weight: bold; border-radius: 8px; cursor: pointer; transition: background 0.3s; width: 100%; max-width: 300px; }
+        .btn-ranking:hover { background-color: #e67e22; }
+        
+        #quiz-tela, #ranking-tela { display: none; text-align: left; }
+        #quiz-tela h1, #ranking-tela h1 { text-align: center; color: #2c3e50; font-size: 24px; margin-bottom: 10px; }
+        #progresso-texto { text-align: center; color: #7f8c8d; font-weight: bold; margin-bottom: 20px; font-size: 14px; }
+        .barra-progresso { width: 100%; background-color: #ecf0f1; border-radius: 10px; height: 10px; margin-bottom: 30px; overflow: hidden; }
+        #progresso-preenchimento { height: 100%; background-color: #3498db; width: 0%; transition: width 0.3s; }
+        
+        .questao-caixa { background-color: #f9fbfd; border-left: 4px solid #3498db; padding: 20px; border-radius: 4px; margin-bottom: 20px; font-size: 16px; }
+        .enunciado { font-weight: bold; margin-bottom: 20px; line-height: 1.5; }
+        .opcao-label { display: block; background-color: #fff; border: 1px solid #dcdcdc; padding: 12px 15px; margin-bottom: 10px; border-radius: 8px; cursor: pointer; transition: all 0.2s; }
+        .opcao-label:hover { background-color: #ecf0f1; border-color: #bdc3c7; }
+        input[type="radio"] { margin-right: 10px; transform: scale(1.2); }
+        
+        .botoes-container { display: flex; justify-content: flex-end; }
+        .btn-proxima { background-color: #2980b9; color: #fff; border: none; padding: 12px 25px; font-size: 16px; font-weight: bold; border-radius: 8px; cursor: pointer; transition: background 0.3s;}
+        .btn-proxima:hover { background-color: #2471a3; }
+        
+        #resultado-container { display: none; text-align: center; padding: 20px; }
+        .nome-destaque { font-size: 22px; color: #7f8c8d; margin-bottom: 10px; }
+        .nota-final-destaque { font-size: 48px; font-weight: bold; color: #2c3e50; margin: 10px 0; }
+        .estatisticas { font-size: 18px; color: #555; margin-bottom: 20px; }
+        
+        .mensagem-sucesso { background-color: #d4edda; color: #155724; padding: 15px; border-radius: 8px; border: 1px solid #c3e6cb; margin-top: 20px; font-weight: bold; display: none; }
+        .mensagem-carregando { color: #f39c12; font-weight: bold; margin-top: 20px; text-align: center; }
+        .lista-erros { text-align: left; margin-top: 30px; background-color: #fdf1f0; padding: 20px; border-radius: 8px; border: 1px solid #f5c6cb; }
+        .lista-erros h3 { color: #c0392b; margin-top: 0; }
+        .erro-item { margin-bottom: 15px; border-bottom: 1px solid #f5c6cb; padding-bottom: 10px;}
+        .erro-pergunta { font-weight: bold; font-size: 14px;}
+        .erro-resposta { color: #27ae60; font-weight: bold; font-size: 14px; margin-top: 5px;}
+    </style>
+</head>
+<body>
+
+<div class="container">
+    
+    <div id="tela-inicial">
+        <h1>💻 Bem-vindo ao Teste!</h1>
+        <p>Disciplina: Engenharia de Software</p>
+        <input type="text" id="input-nome-aluno" class="input-nome" placeholder="Digite seu nome completo..." autocomplete="off">
+        <br>
+        <button class="btn-comecar" onclick="comecarTeste()">Começar Teste ➔</button>
+        <br>
+        <button class="btn-ranking" onclick="verRanking()">🏆 Ver Ranking da Turma</button>
+    </div>
+
+    <div id="ranking-tela">
+        <h1>🏆 Placar de Líderes</h1>
+        <p style="text-align: center; color: #7f8c8d;">Veja as maiores notas da turma!</p>
+        <div id="ranking-lista" class="mensagem-carregando">⏳ Carregando dados...</div>
+        <div style="text-align: center; margin-top: 30px;">
+            <button class="btn-comecar" style="background-color: #7f8c8d;" onclick="voltarInicio()">⬅️ Voltar ao Início</button>
+        </div>
+    </div>
+
+    <div id="quiz-tela">
+        <h1>💻 Teste: Engenharia de Software</h1>
+        <div id="progresso-texto">Questão 1 de X</div>
+        <div class="barra-progresso"><div id="progresso-preenchimento"></div></div>
+        <div class="questao-caixa" id="questao-container"></div>
+        <div class="botoes-container"><button id="btn-proxima" class="btn-proxima" onclick="avancarQuestao()">Próxima Questão ➔</button></div>
+    </div>
+
+    <div id="resultado-container">
+        <div id="conteudo-resultado"></div>
+        <div id="status-salvamento" class="mensagem-carregando">⏳ Salvando sua nota no sistema... aguarde.</div>
+        <div id="sucesso-salvamento" class="mensagem-sucesso">✅ Nota salva com sucesso! 
+            <br><br><button class="btn-ranking" onclick="location.reload()">Ir para Início / Ranking</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // ========================================================
+    // O SEU NOVO URL DO GOOGLE SCRIPT ESTÁ AQUI
+    // ========================================================
+    const URL_DA_PLANILHA = "https://script.google.com/macros/s/AKfycbxzZ5xYLvWUBSw1U7LVSBmI4D1OfB2gi79HgW81W1O0VzOpfQZp0uIwu940PkyoJe2y/exec";
+
+    // 1. BANCO DE QUESTÕES (30 Questões de Engenharia de Software com 4 alternativas)
+    const bancoDeQuestoes = [
+        {
+            enunciado: "De acordo com o material, o que é a Engenharia de Software?",
+            opcoes: [
+                "O processo exclusivo de vender softwares e aplicativos pela internet.",
+                "A prática de programar rapidamente arrastando blocos sem planejamento.",
+                "O conjunto de técnicas, métodos e ferramentas usadas para planejar, construir e manter sistemas complexos dentro do prazo e orçamento.",
+                "A manutenção física dos servidores de jogos e computadores de grande porte."
+            ],
+            respostaCorreta: "O conjunto de técnicas, métodos e ferramentas usadas para planejar, construir e manter sistemas complexos dentro do prazo e orçamento."
+        },
+        {
+            enunciado: "Qual é a principal responsabilidade do Game Designer (O Arquiteto) na criação de um jogo?",
+            opcoes: [
+                "Pensa nas regras, no desenho do mapa e no que torna o sistema divertido e funcional.",
+                "Escreve as linhas de código da linguagem de programação do servidor.",
+                "Tenta quebrar o jogo comprando itens sem ter dinheiro.",
+                "Modela visualmente as mesas, cadeiras e a iluminação em 3D."
+            ],
+            respostaCorreta: "Pensa nas regras, no desenho do mapa e no que torna o sistema divertido e funcional."
+        },
+        {
+            enunciado: "Qual é o papel do Scripter/Programador em uma equipe de desenvolvimento?",
+            opcoes: [
+                "Fazer o planejamento elétrico do laboratório.",
+                "Pegar a parte visual feita pelo construtor e dar vida a ela através de scripts e códigos.",
+                "Testar todas as funcionalidades até o sistema travar.",
+                "Decidir qual será o preço dos itens de um jogo e as suas regras de negócio."
+            ],
+            respostaCorreta: "Pegar a parte visual feita pelo construtor e dar vida a ela através de scripts e códigos."
+        },
+        {
+            enunciado: "O que caracteriza a função do profissional de QA (Quality Assurance)?",
+            opcoes: [
+                "É o engenheiro responsável pelo design de som.",
+                "É o profissional focado em criar a planta baixa do software antes de codificar.",
+                "É quem desenvolve a campanha de marketing do aplicativo lançado.",
+                "É o testador pago para tentar quebrar e achar defeitos (bugs) no sistema antes do lançamento público."
+            ],
+            respostaCorreta: "É o testador pago para tentar quebrar e achar defeitos (bugs) no sistema antes do lançamento público."
+        },
+        {
+            enunciado: "Como era o desenvolvimento de software nos anos 50 e 60?",
+            opcoes: [
+                "Os sistemas eram comprados em prateleiras, como o Windows e o Word.",
+                "A programação envolvia fazer buracos em cartões de papel (cartões perfurados), sendo um trabalho lento e quase artesanal.",
+                "Os programadores utilizavam a nuvem para armazenar seus códigos.",
+                "Aplicativos de celular dominavam o mercado e eram atualizados semanalmente."
+            ],
+            respostaCorreta: "A programação envolvia fazer buracos em cartões de papel (cartões perfurados), sendo um trabalho lento e quase artesanal."
+        },
+        {
+            enunciado: "O que foi a 'Crise do Software' que ocorreu na década de 1970?",
+            opcoes: [
+                "Um período em que os computadores deixaram de ser fabricados.",
+                "A falência de grandes produtoras de jogos virtuais devido à falta de internet.",
+                "Um desastre onde os projetos estouraram orçamentos, atrasaram anos e resultaram em softwares de baixa qualidade e difíceis de manter.",
+                "O declínio do uso de cartões perfurados substituídos pelas inteligências artificiais."
+            ],
+            respostaCorreta: "Um desastre onde os projetos estouraram orçamentos, atrasaram anos e resultaram em softwares de baixa qualidade e difíceis de manter."
+        },
+        {
+            enunciado: "Por que um software de marcapasso cardíaco exige processos de engenharia muito mais rigorosos do que um aplicativo de calculadora?",
+            opcoes: [
+                "Porque o aplicativo do marcapasso precisa de atualizações diárias e interfaces coloridas.",
+                "Porque o marcapasso exige que os médicos leiam o código antes de cada cirurgia.",
+                "Porque o custo de uma falha (bug) no marcapasso é a vida humana.",
+                "Porque calculadoras não utilizam nenhum tipo de código de programação, apenas botões físicos."
+            ],
+            respostaCorreta: "Porque o custo de uma falha (bug) no marcapasso é a vida humana."
+        },
+        {
+            enunciado: "Por que a Netflix diminui a resolução do vídeo (imagem quadriculada) quando a internet está lenta, em vez de parar o filme imediatamente?",
+            opcoes: [
+                "Para economizar com os custos dos seus próprios servidores.",
+                "Porque a internet lenta torna os arquivos maiores no celular.",
+                "Para priorizar a experiência do usuário, garantindo que o filme não trave com telas de carregamento infinitas.",
+                "Porque vídeos de alta qualidade ocupam muita memória no sistema."
+            ],
+            respostaCorreta: "Para priorizar a experiência do usuário, garantindo que o filme não trave com telas de carregamento infinitas."
+        },
+        {
+            enunciado: "O que ocorre na fase de 'Levantamento de Requisitos' no Ciclo de Vida de Software?",
+            opcoes: [
+                "A equipe implanta o sistema nos servidores de produção.",
+                "A equipe desenvolve e escreve o código real do aplicativo.",
+                "A equipe realiza testes de falha em massa.",
+                "A equipe conversa com o cliente para entender exatamente o que o sistema precisa fazer."
+            ],
+            respostaCorreta: "A equipe conversa com o cliente para entender exatamente o que o sistema precisa fazer."
+        },
+        {
+            enunciado: "O 'Triângulo de Ferro' na gestão de projetos busca equilibrar três pilares centrais. Quais são eles?",
+            opcoes: [
+                "Cliente, Produto e Nuvem.",
+                "Escopo, Tempo e Custo (tendo a Qualidade no centro).",
+                "Programador, Testador e Arquiteto.",
+                "Backlog, Sprint e MVP."
+            ],
+            respostaCorreta: "Escopo, Tempo e Custo (tendo a Qualidade no centro)."
+        },
+        {
+            enunciado: "Qual a consequência se você alterar um dos pilares do Triângulo de Ferro (por exemplo, aumentar o escopo adicionando uma nova funcionalidade no meio do projeto)?",
+            opcoes: [
+                "Os outros pilares serão inevitavelmente afetados (levará mais tempo ou custará mais caro).",
+                "A equipe terminará o projeto mais rápido e com menos custos.",
+                "A metodologia Cascata se transforma em Scrum.",
+                "A qualidade final do produto não será alterada, pois o código se adapta sozinho."
+            ],
+            respostaCorreta: "Os outros pilares serão inevitavelmente afetados (levará mais tempo ou custará mais caro)."
+        },
+        {
+            enunciado: "Como funciona a metodologia Cascata (Waterfall)?",
+            opcoes: [
+                "O sistema é entregue em pequenas partes funcionais a cada semana.",
+                "É baseada no uso intensivo da inteligência artificial para codificar.",
+                "É uma abordagem tradicional e linear onde não se avança para a próxima fase sem ter concluído e aprovado 100% da fase anterior.",
+                "O planejamento ocorre durante o projeto, evitando documentos no início."
+            ],
+            respostaCorreta: "É uma abordagem tradicional e linear onde não se avança para a próxima fase sem ter concluído e aprovado 100% da fase anterior."
+        },
+        {
+            enunciado: "Qual é uma das grandes desvantagens da metodologia Cascata?",
+            opcoes: [
+                "Orçamento imprevisível desde o dia 1.",
+                "Falta total de documentação escrita sobre o projeto.",
+                "Altíssima flexibilidade, fazendo a equipe perder o foco.",
+                "Baixíssima flexibilidade; mudanças no meio da execução têm enorme impacto no prazo e custo."
+            ],
+            respostaCorreta: "Baixíssima flexibilidade; mudanças no meio da execução têm enorme impacto no prazo e custo."
+        },
+        {
+            enunciado: "O que é a metodologia Scrum?",
+            opcoes: [
+                "Um framework ágil que entrega partes funcionais do projeto em ciclos curtos de tempo, chamados de Sprints.",
+                "Um tipo de linguagem de programação usada para jogos 3D.",
+                "Um sistema rígido onde o cliente só vê o projeto pronto no final do ano.",
+                "Um software que testa os bugs automaticamente sem ajuda humana."
+            ],
+            respostaCorreta: "Um framework ágil que entrega partes funcionais do projeto em ciclos curtos de tempo, chamados de Sprints."
+        },
+        {
+            enunciado: "Qual é o papel do 'Product Owner' (Dono do Produto) no Scrum?",
+            opcoes: [
+                "Ajudar a equipe a seguir as regras da metodologia diária.",
+                "Codificar o banco de dados e montar a infraestrutura física.",
+                "Decidir e definir o que precisa ser feito no projeto.",
+                "Liderar a tentativa de quebrar o sistema para achar vulnerabilidades."
+            ],
+            respostaCorreta: "Decidir e definir o que precisa ser feito no projeto."
+        },
+        {
+            enunciado: "O que é o Backlog no framework Scrum?",
+            opcoes: [
+                "Uma ferramenta visual para desenhar logotipos.",
+                "O tempo total necessário para entregar o software.",
+                "Uma lista ordenada de tudo o que precisa ser feito no projeto.",
+                "O fechamento financeiro do contrato com o cliente."
+            ],
+            respostaCorreta: "Uma lista ordenada de tudo o que precisa ser feito no projeto."
+        },
+        {
+            enunciado: "O que representa uma Sprint no Scrum?",
+            opcoes: [
+                "Uma reunião diária de 15 minutos de bate-papo.",
+                "A fase final onde o projeto é abandonado e reiniciado.",
+                "A documentação exaustiva de requisitos entregue no início do ano.",
+                "Um ciclo de trabalho fixo (geralmente de 1 a 4 semanas) onde a equipe se compromete a entregar partes prontas do sistema."
+            ],
+            respostaCorreta: "Um ciclo de trabalho fixo (geralmente de 1 a 4 semanas) onde a equipe se compromete a entregar partes prontas do sistema."
+        },
+        {
+            enunciado: "O que significa a sigla MVP no desenvolvimento de software?",
+            opcoes: [
+                "Múltiplos Valores Positivos.",
+                "Produto Mínimo Viável (Minimum Viable Product).",
+                "Monitoramento Virtual de Prazos.",
+                "Metodologia Visual Prática."
+            ],
+            respostaCorreta: "Produto Mínimo Viável (Minimum Viable Product)."
+        },
+        {
+            enunciado: "Qual é a utilidade prática do MVP para uma empresa?",
+            opcoes: [
+                "É a versão mais simples e básica do software que já funciona e resolve o problema principal, permitindo testar a ideia rapidamente antes de gastar muito dinheiro.",
+                "Serve para adiar a entrega do projeto por 2 anos até o aplicativo estar perfeito.",
+                "É usado exclusivamente para treinar os programadores novatos antes do trabalho real.",
+                "É uma estratégia onde se entregam primeiro funções inúteis para enganar a concorrência."
+            ],
+            respostaCorreta: "É a versão mais simples e básica do software que já funciona e resolve o problema principal, permitindo testar a ideia rapidamente antes de gastar muito dinheiro."
+        },
+        {
+            enunciado: "A métrica de 'Velocidade' (Velocity) ajuda o gerente a avaliar o quê?",
+            opcoes: [
+                "A quantidade total de defeitos no código fonte.",
+                "A medida de quanto trabalho a equipe consegue terminar dentro de uma Sprint, ajudando a prever quando o projeto todo acabará.",
+                "Quantas semanas o banco de dados leva para compilar as regras.",
+                "O tempo de carregamento de um vídeo da Netflix na nuvem."
+            ],
+            respostaCorreta: "A medida de quanto trabalho a equipe consegue terminar dentro de uma Sprint, ajudando a prever quando o projeto todo acabará."
+        },
+        {
+            enunciado: "O que representa a métrica de Rendimento (Throughput)?",
+            opcoes: [
+                "A quantificação dos orçamentos estourados em um semestre.",
+                "O número de cliques necessários para achar uma opção no menu.",
+                "A proporção de bugs reintroduzidos no sistema.",
+                "A quantidade de itens de trabalho completados em um período de tempo específico."
+            ],
+            respostaCorreta: "A quantidade de itens de trabalho completados em um período de tempo específico."
+        },
+        {
+            enunciado: "O Lead Time (Tempo de Execução) é uma métrica que mede:",
+            opcoes: [
+                "O tempo que o programador leva para almoçar.",
+                "O número de funcionalidades testadas e reprovadas.",
+                "O tempo total necessário para concluir um item de trabalho, desde o seu início até a entrega para o cliente.",
+                "A vida útil de um servidor de computador antes de queimar."
+            ],
+            respostaCorreta: "O tempo total necessário para concluir um item de trabalho, desde o seu início até a entrega para o cliente."
+        },
+        {
+            enunciado: "Como deve se comportar a linha de um Gráfico de Burndown em uma Sprint bem-sucedida?",
+            opcoes: [
+                "A linha começa em zero e sobe gradualmente até o total de tarefas.",
+                "A linha permanece estável e reta do primeiro ao último dia.",
+                "A linha começa lá no alto (ex: 100 tarefas) e vai caindo em direção ao zero conforme os dias passam e o trabalho é feito.",
+                "A linha faz o desenho de um triângulo representando o custo do projeto."
+            ],
+            respostaCorreta: "A linha começa lá no alto (ex: 100 tarefas) e vai caindo em direção ao zero conforme os dias passam e o trabalho é feito."
+        },
+        {
+            enunciado: "O que mede a métrica Taxa de Bugs (Defect Rate)?",
+            opcoes: [
+                "O número de pessoas que abandonam o aplicativo.",
+                "O percentual de testes automatizados realizados com sucesso.",
+                "A quantidade de defeitos encontrados em uma determinada quantidade de código entregue.",
+                "O tempo entre a identificação do erro e o reembolso financeiro."
+            ],
+            respostaCorreta: "A quantidade de defeitos encontrados em uma determinada quantidade de código entregue."
+        },
+        {
+            enunciado: "A Taxa de Retorno de Defeitos quantifica:",
+            opcoes: [
+                "Quantos clientes solicitaram devolução do dinheiro.",
+                "A velocidade com que a equipe corrige bugs simples.",
+                "O custo financeiro de cada erro cometido pela equipe de infraestrutura.",
+                "A proporção de defeitos que são corrigidos, mas que acabam sendo reintroduzidos em versões futuras do software."
+            ],
+            respostaCorreta: "A proporção de defeitos que são corrigidos, mas que acabam sendo reintroduzidos em versões futuras do software."
+        },
+        {
+            enunciado: "Uma alta porcentagem na métrica de 'Cobertura de Testes' indica que:",
+            opcoes: [
+                "Há um grande número de tarefas de trabalho paradas no Backlog.",
+                "Uma grande parte do código ou das funcionalidades está sendo testada automaticamente, o que ajuda a reduzir bugs em produção.",
+                "O cliente testou exaustivamente o aplicativo e aprovou.",
+                "O sistema tem uma falha estrutural gravíssima que requer a recriação do código."
+            ],
+            respostaCorreta: "Uma grande parte do código ou das funcionalidades está sendo testada automaticamente, o que ajuda a reduzir bugs em produção."
+        },
+        {
+            enunciado: "Para sistemas de alta disponibilidade, como bancos e hospitais, usa-se a métrica MTBF. O que ela significa?",
+            opcoes: [
+                "Média de Tarefas Básicas Feitas.",
+                "Metodologia de Teste de Baixa Frequência.",
+                "Tempo Médio Entre Falhas (Mede o tempo médio em que o sistema fica no ar sem interrupções).",
+                "Máximo de Tempo de Busca Front-end."
+            ],
+            respostaCorreta: "Tempo Médio Entre Falhas (Mede o tempo médio em que o sistema fica no ar sem interrupções)."
+        },
+        {
+            enunciado: "A 'Satisfação do Usuário' é uma métrica considerada:",
+            opcoes: [
+                "Uma métrica técnica e matemática contada através das linhas de código.",
+                "Uma métrica irrelevante para a engenharia de software atual.",
+                "Uma métrica extraída exclusivamente dos gráficos de Burndown diários.",
+                "Uma métrica não técnica, mas crucial, avaliada por pesquisas de satisfação e comentários nas lojas de aplicativos."
+            ],
+            respostaCorreta: "Uma métrica não técnica, mas crucial, avaliada por pesquisas de satisfação e comentários nas lojas de aplicativos."
+        },
+        {
+            enunciado: "O que ocorre na reunião de Retrospectiva dentro do Scrum?",
+            opcoes: [
+                "O planejamento formal e aprovação da planta baixa do sistema de banco de dados.",
+                "A equipe discute o que melhorar no processo e na forma de trabalho deles.",
+                "Apenas o cliente fala sobre o escopo que quer cortar.",
+                "O Product Owner realiza os testes do sistema tentando forçar erros."
+            ],
+            respostaCorreta: "A equipe discute o que melhorar no processo e na forma de trabalho deles."
+        },
+        {
+            enunciado: "Ao monitorar a 'Precisão das Estimativas', o gerente de projetos deseja:",
+            opcoes: [
+                "Comparar as estimativas iniciais de esforço com o tempo real que foi gasto, para entender a precisão da equipe.",
+                "Calcular a resolução gráfica em que o jogo será rodado nos celulares.",
+                "Quantificar os itens que os programadores apagaram da lixeira do computador.",
+                "Contabilizar quantas Sprints serão canceladas por falta de pagamento."
+            ],
+            respostaCorreta: "Comparar as estimativas iniciais de esforço com o tempo real que foi gasto, para entender a precisão da equipe."
+        }
+    ];
+
+    let nomeDoAluno = "";
+    let questoesEmbaralhadas = [];
+    let indiceAtual = 0;
+    let acertos = 0;
+    let listaDeErros = [];
+
+    // ====== FUNÇÕES DO RANKING ======
+    function verRanking() {
+        document.getElementById('tela-inicial').style.display = 'none';
+        document.getElementById('ranking-tela').style.display = 'block';
+        document.getElementById('ranking-lista').innerHTML = "⏳ Carregando dados da planilha...";
+
+        fetch(URL_DA_PLANILHA)
+            .then(response => response.json())
+            .then(data => {
+                if (data.length === 0) {
+                    document.getElementById('ranking-lista').innerHTML = "<p style='text-align:center;'>Nenhum aluno fez o teste ainda.</p>";
+                    return;
+                }
+
+                let html = "<table style='width:100%; border-collapse: collapse; margin-top:20px; text-align: left;'>";
+                html += "<tr style='background-color:#3498db; color:white;'><th style='padding:12px; border-radius: 8px 0 0 0;'>Posição</th><th>Nome</th><th style='border-radius: 0 8px 0 0;'>Nota</th></tr>";
+                
+                data.forEach((aluno, index) => {
+                    let medalha = (index + 1) + "º";
+                    if (index === 0) medalha = "🥇 1º";
+                    else if (index === 1) medalha = "🥈 2º";
+                    else if (index === 2) medalha = "🥉 3º";
+
+                    let corFundo = index % 2 === 0 ? '#f9f9f9' : '#fff';
+                    html += `<tr style='border-bottom: 1px solid #ddd; background-color: ${corFundo};'>
+                                <td style='padding:12px; font-weight: bold; color: #2c3e50;'>${medalha}</td>
+                                <td style='padding:12px; color: #333;'>${aluno.nome}</td>
+                                <td style='padding:12px; font-weight: bold; color: #27ae60;'>${Number(aluno.nota).toFixed(1)}</td>
+                             </tr>`;
+                });
+                html += "</table>";
+                document.getElementById('ranking-lista').innerHTML = html;
+            })
+            .catch(error => {
+                document.getElementById('ranking-lista').innerHTML = "<p style='color:red; text-align:center;'>⚠️ Erro ao carregar o ranking.</p>";
+            });
+    }
+
+    function voltarInicio() {
+        document.getElementById('ranking-tela').style.display = 'none';
+        document.getElementById('tela-inicial').style.display = 'block';
+    }
+
+    // ====== FUNÇÕES DO QUIZ ======
+    function comecarTeste() {
+        let inputBox = document.getElementById('input-nome-aluno');
+        if (inputBox.value.trim() === "") { alert("⚠️ Por favor, digite seu nome antes de começar!"); return; }
+        nomeDoAluno = inputBox.value.trim();
+        document.getElementById('tela-inicial').style.display = 'none';
+        document.getElementById('quiz-tela').style.display = 'block';
+        iniciarQuiz();
+    }
+
+    function embaralharArray(array) {
+        let arrayCopia = [...array];
+        for (let i = arrayCopia.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [arrayCopia[i], arrayCopia[j]] = [arrayCopia[j], arrayCopia[i]];
+        }
+        return arrayCopia;
+    }
+
+    function iniciarQuiz() {
+        questoesEmbaralhadas = embaralharArray(bancoDeQuestoes);
+        renderizarQuestao();
+    }
+
+    function renderizarQuestao() {
+        const questaoAtual = questoesEmbaralhadas[indiceAtual];
+        const container = document.getElementById('questao-container');
+        document.getElementById('progresso-texto').innerText = `Questão ${indiceAtual + 1} de ${questoesEmbaralhadas.length}`;
+        document.getElementById('progresso-preenchimento').style.width = `${((indiceAtual) / questoesEmbaralhadas.length) * 100}%`;
+
+        let htmlDiv = `<div class="enunciado">${questaoAtual.enunciado}</div>`;
+        
+        // Embaralha as alternativas dentro da pergunta
+        let alternativasEmbaralhadas = embaralharArray(questaoAtual.opcoes);
+        
+        alternativasEmbaralhadas.forEach((opcao) => { 
+            htmlDiv += `<label class="opcao-label"><input type="radio" name="resposta" value="${opcao}"> ${opcao}</label>`; 
+        });
+        container.innerHTML = htmlDiv;
+
+        const btn = document.getElementById('btn-proxima');
+        if (indiceAtual === questoesEmbaralhadas.length - 1) {
+            btn.innerText = "Finalizar Teste ✔️"; btn.style.backgroundColor = "#27ae60";
+        }
+    }
+
+    function avancarQuestao() {
+        const opcoes = document.getElementsByName('resposta');
+        let respostaSelecionada = null;
+        for (let opcao of opcoes) { if (opcao.checked) { respostaSelecionada = opcao.value; break; } }
+        
+        if (!respostaSelecionada) { alert("⚠️ Selecione uma alternativa para continuar!"); return; }
+
+        if (respostaSelecionada === questoesEmbaralhadas[indiceAtual].respostaCorreta) { 
+            acertos++; 
+        } else {
+            listaDeErros.push({
+                pergunta: questoesEmbaralhadas[indiceAtual].enunciado,
+                respostaCerta: questoesEmbaralhadas[indiceAtual].respostaCorreta
+            });
+        }
+
+        indiceAtual++;
+        if (indiceAtual < questoesEmbaralhadas.length) { renderizarQuestao(); } 
+        else { finalizarQuiz(); }
+    }
+
+    function finalizarQuiz() {
+        document.getElementById('quiz-tela').style.display = 'none';
+        document.getElementById('resultado-container').style.display = 'block';
+
+        const totalQuestoes = questoesEmbaralhadas.length;
+        
+        // A vírgula está garantida aqui na nota que vai pro Google
+        const notaDeZeroADez = ((acertos / totalQuestoes) * 10).toFixed(1).replace('.', ','); 
+        const porcentagem = Math.round((acertos / totalQuestoes) * 100);    
+        
+        // Formata a nota na tela com vírgula visualmente
+        let mensagemHtml = `
+            <h2>Teste Concluído!</h2>
+            <div class="nome-destaque">Aluno(a): <strong>${nomeDoAluno}</strong></div>
+            <div class="nota-final-destaque">${notaDeZeroADez} / 10,0</div>
+            <div class="estatisticas">Acertos: ${acertos} de ${totalQuestoes} (${porcentagem}%)</div>
+        `;
+
+        if (listaDeErros.length > 0) {
+            let errosHtml = `<div class="lista-erros" style="display: block;"><h3>O que você precisa revisar:</h3>`;
+            listaDeErros.forEach(erro => {
+                errosHtml += `<div class="erro-item"><div class="erro-pergunta">${erro.pergunta}</div><div class="erro-resposta">➔ Resposta correta: ${erro.respostaCerta}</div></div>`;
+            });
+            errosHtml += `</div>`;
+            mensagemHtml += errosHtml;
+        } else {
+            mensagemHtml += `<p style="color: #27ae60; font-weight: bold; margin-top:20px; font-size: 18px;">Parabéns! Você gabaritou a prova! 🏆</p>`;
+        }
+
+        document.getElementById('conteudo-resultado').innerHTML = mensagemHtml;
+
+        // Salvamento na Planilha
+        let dados = new URLSearchParams();
+        dados.append("nome", nomeDoAluno);
+        dados.append("nota", notaDeZeroADez); // Será enviada com vírgula
+        dados.append("porcentagem", porcentagem + "%");
+
+        fetch(URL_DA_PLANILHA, {
+            method: "POST",
+            body: dados,
+            mode: "no-cors"
+        }).then(() => {
+            document.getElementById('status-salvamento').style.display = 'none';
+            document.getElementById('sucesso-salvamento').style.display = 'block';
+        }).catch(error => {
+            document.getElementById('status-salvamento').innerText = "⚠️ Houve um erro de conexão, mas sua nota foi processada localmente.";
+        });
+    }
+</script>
+
+</body>
+</html>
