@@ -46,7 +46,6 @@
         .lista-erros h3 { color: #c0392b; margin-top: 0; }
         .erro-item { margin-bottom: 15px; border-bottom: 1px solid #f5c6cb; padding-bottom: 10px;}
         .erro-pergunta { font-weight: bold; font-size: 14px;}
-        .erro-resposta { color: #27ae60; font-weight: bold; font-size: 14px; margin-top: 5px;}
     </style>
 </head>
 <body>
@@ -91,7 +90,7 @@
 
 <script>
     // ========================================================
-    // O SEU NOVO URL DO GOOGLE SCRIPT ESTÁ AQUI
+    // O SEU URL DO GOOGLE SCRIPT ESTÁ AQUI
     // ========================================================
     const URL_DA_PLANILHA = "https://script.google.com/macros/s/AKfycbxzZ5xYLvWUBSw1U7LVSBmI4D1OfB2gi79HgW81W1O0VzOpfQZp0uIwu940PkyoJe2y/exec";
 
@@ -480,7 +479,6 @@
 
         let htmlDiv = `<div class="enunciado">${questaoAtual.enunciado}</div>`;
         
-        // Embaralha as alternativas dentro da pergunta
         let alternativasEmbaralhadas = embaralharArray(questaoAtual.opcoes);
         
         alternativasEmbaralhadas.forEach((opcao) => { 
@@ -506,7 +504,7 @@
         } else {
             listaDeErros.push({
                 pergunta: questoesEmbaralhadas[indiceAtual].enunciado,
-                respostaCerta: questoesEmbaralhadas[indiceAtual].respostaCorreta
+                respostaCerta: questoesEmbaralhadas[indiceAtual].respostaCorreta // Mantido no script, mas não será exibido na tela
             });
         }
 
@@ -521,11 +519,9 @@
 
         const totalQuestoes = questoesEmbaralhadas.length;
         
-        // A vírgula está garantida aqui na nota que vai pro Google
         const notaDeZeroADez = ((acertos / totalQuestoes) * 10).toFixed(1).replace('.', ','); 
         const porcentagem = Math.round((acertos / totalQuestoes) * 100);    
         
-        // Formata a nota na tela com vírgula visualmente
         let mensagemHtml = `
             <h2>Teste Concluído!</h2>
             <div class="nome-destaque">Aluno(a): <strong>${nomeDoAluno}</strong></div>
@@ -533,10 +529,13 @@
             <div class="estatisticas">Acertos: ${acertos} de ${totalQuestoes} (${porcentagem}%)</div>
         `;
 
+        // ========================================================
+        // AQUI ESTÁ A ALTERAÇÃO: MOSTRAR SÓ A PERGUNTA, SEM A RESPOSTA
+        // ========================================================
         if (listaDeErros.length > 0) {
-            let errosHtml = `<div class="lista-erros" style="display: block;"><h3>O que você precisa revisar:</h3>`;
+            let errosHtml = `<div class="lista-erros" style="display: block;"><h3>Questões que você errou (Revise e tente novamente):</h3>`;
             listaDeErros.forEach(erro => {
-                errosHtml += `<div class="erro-item"><div class="erro-pergunta">${erro.pergunta}</div><div class="erro-resposta">➔ Resposta correta: ${erro.respostaCerta}</div></div>`;
+                errosHtml += `<div class="erro-item"><div class="erro-pergunta">❌ ${erro.pergunta}</div></div>`;
             });
             errosHtml += `</div>`;
             mensagemHtml += errosHtml;
@@ -549,7 +548,7 @@
         // Salvamento na Planilha
         let dados = new URLSearchParams();
         dados.append("nome", nomeDoAluno);
-        dados.append("nota", notaDeZeroADez); // Será enviada com vírgula
+        dados.append("nota", notaDeZeroADez); 
         dados.append("porcentagem", porcentagem + "%");
 
         fetch(URL_DA_PLANILHA, {
